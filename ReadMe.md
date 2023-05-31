@@ -23,7 +23,7 @@ RPC (Remote Procedure Call) to protokół komunikacyjny, który umożliwia zdaln
 
 RPC korzysta z istniejących protokołów transportowych, takich jak TCP/IP lub UDP, do przesyłania danych przez sieć. Zapewnia niezawodną i uporządkowaną dostawę żądań i odpowiedzi.
 
-W RPC istnieją dwa rodzaje synchronizacji danych: połączenie synchroniczne W przypadku którego klient oczekuje na odpowiedź od serwera przed kontynuacją działania oraz asynchroniczne, gdzie klient może kontynuować działanie bez konieczności oczekiwania na odpowiedź zwrotną.
+W RPC istnieją dwa rodzaje synchronizacji danych: połączenie synchroniczne, w przypadku którego klient oczekuje na odpowiedź od serwera przed kontynuacją działania oraz asynchroniczne, gdzie klient może kontynuować działanie bez konieczności oczekiwania na odpowiedź zwrotną.
 
 Aby klient i serwer mogli komunikować się ze sobą, muszą znać definicję dostępnych funkcji i parametrów. W tym celu stosuje się protokoły opisu interfejsu, takie jak IDL (Interface Description Language).
 
@@ -54,36 +54,52 @@ Do dostępnych funkcjonalności kalkulatora należą:
 - dzielenie liczby a przez liczbę b
 - podnoszenie liczby a do potęgi b
 - obliczanie pierwiastka stopnia b z liczby a
+- obliczanie delty i miejsc zerowych funkcji kwadratowej
+- upraszczanie funkcji
+- obliczanie całki
+- obliczanie pierwszej i drugiej pochodnej
 
 Implementacja funkcji różni się w przypadku aplikacji klienckiej i serwerowej.
 
-Przykład implementacji funkcji dodawania po stronie serwera:
+Przykład implementacji funkcji dodawania oraz całkowania po stronie serwera:
 
 ```python
+# Import wymaganych paczek
 from pyRpc import PyRpc
+import sympy as sp
 # Deklaracja nowego obiektu PyRPC
 myRpc = PyRpc("pl.UWMWMII.pyRpcCalculator") 
-# Deklaracja metody add()
+# Deklaracja metod add() i calculate_integral()
 def add(a, b):
 	""" Returns result of sum a + b """
 	return a + b
-# Publikacja / eksport metody add() 
+
+def calculate_integral(expresion):
+    """ Calculates integral of given function
+		example input: "x**2 + 2*x" """
+    return sp.integrate(expresion)
+
+# Publikacja / eksport metod add() i calculate_integral()
 myRpc.publishService(add)
 ```
 
 Domyślnie nowy obiekt PyRpc używa protokołu IPC, który jest przeznaczony dla procesów działających na tej samej maszynie hosta. W celu wyeksportowania usługi przez tcp można opcjonalnie określić adres tcp ip:port do użycia.
 
-Implementacja tej samej funkcji po stronie aplikacji klienckiej wygląda zupełnie inaczej:
+Implementacja tych samych funkcji po stronie aplikacji klienckiej wygląda zupełnie inaczej:
 
 ```python
 from pyRpc import RpcConnection
 # Deklaracja nowego obiektu RpcConnection
 remote = RpcConnection("pl.UWMWMII.pyRpcCalculator")
-# Deklaracja metody add()
+# Deklaracja metod add() i calculate_integral()
 def add(a, b):
     # Przypisanie do zmiennej wyniku zapytania do serwera
     resp = remote.call('add', args=(a, b))
     print(f'Result of {a} + {b} is {resp.result}')
+
+def calculate_integral(expresion):
+    resp = remote.call('calculate_integral', args=[expresion])
+    print(f'Integral of expresion {expresion} is {resp.result}')
 ```
 
 Poza deklaracjami obiektów PyRpc i RpcConnection, które są deklarowane jednorazowo, deklaracje pozostałych funkcjonalności wyglądają analogicznie.
@@ -101,6 +117,7 @@ Następnie przy użyciu bibliotek PyRPC oraz wbudowanej biblioteki time stworzyl
 ```python
 import time
 from pyRpc import PyRpc
+import sympy as sp
 
 def add(a, b):
 	""" Returns result of sum a + b """
@@ -169,7 +186,7 @@ remote.close()
 time.sleep(1)
 ```
 
-Jak można zauważyć aplikacje te diametralnie się różnią (o czym wspomnieliśmy w poprzednim rozdziale). Aplikacja kliencka została stworzona na wzór konsoli przyjmującej od użytkownika polecenia. Została rozbudowana o funkcje, która nie występuje w ręcznie zadeklarowanych w aplikacji serwerowej funkcjach - help(). Funkcja ta pozwala użytkownikowi na wyświetlenie na ekranie wszystkich wyeksportowanych przez aplikacje serwerową funkcji.
+Jak można zauważyć aplikacje te diametralnie się różnią (o czym wspomnieliśmy w poprzednim rozdziale). Aplikacja kliencka została stworzona na wzór konsoli przyjmującej od użytkownika polecenia. Została rozbudowana o funkcję, która nie występuje w ręcznie zadeklarowanych w aplikacji serwerowej funkcjach - help(). Funkcja ta pozwala użytkownikowi na wyświetlenie na ekranie listy wszystkich wyeksportowanych przez aplikacje serwerową funkcji.
 
 Aby przetestować działanie kalkulatora należy ***uruchomić aplikację serwerową***, a następnie (najwygodniej w drugim oknie konsoli) ***uruchomić aplikację kliencką***, dzięki której można wysyłać żądania (używać funkcji wyeksportowanych przez serwer).
 
@@ -189,3 +206,4 @@ Podczas tworzenia aplikacji udało się nam wyprodukować aplikację serwerową 
 - [Czym jest RPC - Wikipedia](https://pl.wikipedia.org/wiki/Zdalne_wywo%C5%82anie_procedury)
 - [Czym jest ZeroMQ - Wikipedia](https://en.wikipedia.org/wiki/ZeroMQ)
 - [Dokumentacja PyRPC](https://pythonhosted.org/pyRpc/pyRpc.html)
+- [Dokumentacja pakietu sympy](https://docs.sympy.org/latest/index.html)
